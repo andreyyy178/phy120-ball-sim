@@ -1,0 +1,214 @@
+<!--
+Copyright 2021 Matthias Müller - Ten Minute Physics
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Ball</title>
+<style>
+	body {
+		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; 
+		font-size: 15px;
+	}			
+	.button {
+		border-radius: 10px;
+		border: none;
+  		background: green;
+		color: white;
+		margin: 4px 2px;
+		padding: 15px 32px;
+		cursor: pointer;
+  	}
+	canvas {
+		border-style: solid;
+		border:2px solid;
+		border-top-color: white;
+	}
+	.noMargin {
+		margin: 0;
+	}
+</style>
+</head>
+
+<body>
+
+
+
+<h4> 
+	Max Height = <span id = "maxHeight"></span> <span id = "maxHeightTime"></span>
+</h4>
+
+<div class ="noMargin">
+	20m
+</div>
+
+<canvas id="myCanvas"></canvas>
+
+<div class ="noMargin">
+	0m
+</div>
+
+
+<b>V<sub>xi </sub></b> = <input type="number" value = "10.0" id = "inputVelocityX"> m/s &emsp;
+<b>V<sub>yi </sub></b> = <input type="number" value = "15.0" id = "inputVelocityY"> m/s &emsp;
+Restitution&nbsp&nbsp 0<input type = "range" min = "0" max = "10" value = "10" id = "restitutionSlider"> 1 &emsp;
+<button class="button" onclick="startSimulation()">Start</button> &emsp; 
+
+<b>
+V<sub>x</sub> = <span id ="Vx">0</span> m/s &emsp; 
+V<sub>y</sub> = <span id ="Vy">0</span> m/s &emsp; 
+Elapsed time = <span id ="time">0</span> s
+</b>
+
+<script>
+	function startSimulation() {
+		simulationStart = true,
+		maxHeightNotFound = true;
+		document.getElementById("maxHeight").innerHTML = " "
+		time = 0
+		document.getElementById("maxHeightTime").innerHTML = " "
+		ball.pos.x = 0.2, 
+		ball.pos.y = 0.2,  
+		ball.vel.x = parseFloat(document.getElementById("inputVelocityX").value),
+		ball.vel.y = parseFloat(document.getElementById("inputVelocityY").value),
+		restitution = restitutionSlider.value/10
+	}
+
+	// canvas setup -------------------------------------------------------
+
+	var canvas = document.getElementById("myCanvas");
+	var c = canvas.getContext("2d");
+
+
+	canvas.width = window.innerWidth - 300;
+	canvas.height = window.innerHeight - 200;
+
+	var simMinWidth = 20.0;
+	var cScale = Math.min(canvas.width, canvas.height) / simMinWidth;
+	var simWidth = canvas.width / cScale;
+	var simHeight = canvas.height / cScale;
+
+
+	function cX(pos) {
+		return pos.x * cScale;
+	}
+
+	function cY(pos) {
+		return canvas.height - pos.y * cScale;
+	}
+
+	// scene -------------------------------------------------------
+
+	var gravity = { x: 0.0, y: -10.0};
+	var timeStep = 1.0 / 360.0;
+	var restitution = 1;
+
+	var simulationStart = false
+	var time = 0
+	var maxHeightNotFound = true;
+
+	var maxPos = 0;
+
+	var ball = {
+		radius : 0.2,
+		pos : {x : 0, y : 0},
+		vel : {x : 0, y : 0}
+	};
+
+	// drawing -------------------------------------------------------
+
+	function drawBar(pos){
+		c.moveTo(0, pos);
+		console.log( "ball pos:" + ball.pos.y);
+		c.lineTo(40, pos);
+		c.strokeStyle = "black";
+		c.stroke();
+	}
+
+	function draw() {
+
+		c.clearRect(0, 0, canvas.width, canvas.height);
+
+		c.fillStyle = "#FF0000";
+
+		c.beginPath();			
+		c.arc(
+			cX(ball.pos), cY(ball.pos), cScale * ball.radius, 0.0, 2.0 * Math.PI); 
+
+		if(maxHeightNotFound) {
+			drawBar(cY(ball.pos)-cScale*ball.radius+0.2);
+		}
+
+		else {
+			drawBar(maxPos)
+		}
+
+		c.closePath();
+		c.fill();	
+		
+
+
+	}
+
+	
+
+	// simulation ----------------------------------------------------
+
+	function simulate() {
+
+		ball.vel.x += gravity.x * timeStep;
+		ball.vel.y += gravity.y * timeStep;
+		ball.pos.x += ball.vel.x * timeStep;
+		ball.pos.y += ball.vel.y * timeStep;
+
+		if (ball.pos.x < 0.2) {
+			ball.pos.x = 0.2;
+			ball.vel.x = -ball.vel.x;
+            ball.vel.x *= restitution
+		}
+		if (ball.pos.x > simWidth) {
+			ball.pos.x = simWidth-0.2;
+			ball.vel.x = -ball.vel.x;
+            ball.vel.x *= restitution
+		}
+		if (ball.pos.y < 0.2) {
+			ball.pos.y = 0.2;
+			ball.vel.y = -ball.vel.y;
+            ball.vel.y *= restitution
+		}
+
+		document.getElementById("Vx").innerHTML = ball.vel.x.toFixed(0);		
+		document.getElementById("Vy").innerHTML = ball.vel.y.toFixed(0);
+		
+		if(simulationStart){
+			document.getElementById("time").innerHTML = time+=timeStep
+		}
+		
+
+		if(ball.vel.y.toFixed(2) == 0 && simulationStart && maxHeightNotFound) {
+			document.getElementById("maxHeight").innerHTML = ball.pos.y.toFixed(2) + " m"
+			document.getElementById("maxHeightTime").innerHTML = "(initialy found at " + time + " s)"
+			maxHeightNotFound = false;
+			maxPos = cY(ball.pos)-cScale*ball.radius+0.2
+		}
+	}
+
+	// make browser to call us repeatedly -----------------------------------
+
+	function update() {
+		simulate();
+		draw();
+		requestAnimationFrame(update);
+	}
+	
+	update();
+
+
+</script> 
+</body>
+</html>
